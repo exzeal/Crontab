@@ -24,11 +24,12 @@ class Crontab
     private $jobs = array();
 
     /**
-     * A collection of variables
+     * A collection of jobs
      *
-     * @var Variable[] $variables
+     * @var string $mailTo
      */
-    private $variables = array();
+    private $mailTo;
+
 
     /**
      * The user executing the comment 'crontab'
@@ -64,16 +65,17 @@ class Crontab
     }
 
     /**
-     * Render the crontab and associated jobs
+     * Render the crontab and associated jobs and MAILTO
      *
      * @return string
      */
     public function render()
     {
-        return implode(PHP_EOL, array_merge(
-            $this->getVariables(),
-            $this->getJobs()
-        ));
+        if(isset($this->mailTo))
+        {
+            return $this->mailTo . PHP_EOL . implode(PHP_EOL, $this->getJobs());
+        }
+        return implode(PHP_EOL, $this->getJobs());
     }
 
     /**
@@ -96,6 +98,7 @@ class Crontab
     public function flush()
     {
         $this->removeAllJobs();
+        $this->removeMailTo();
         $this->getCrontabFileHandler()->write($this);
     }
 
@@ -122,6 +125,31 @@ class Crontab
 
         return $this;
     }
+
+    /**
+     * Get mailTo
+     *
+     * @return string
+     */
+    public function getMailTo()
+    {
+        return $this->mailTo;
+    }
+
+    /**
+     * Set mailTo to add crontab
+     *
+     * @param string $mail
+     *
+     * @return Crontab
+     */
+    public function setMailTo($mail)
+    {
+        $this->mailTo = "MAILTO=$mail";
+
+        return $this;
+    }
+
 
     /**
      * Get crontab executable location
@@ -159,16 +187,6 @@ class Crontab
     public function getJobs()
     {
         return $this->jobs;
-    }
-
-    /**
-     * Get all variables in crontab
-     *
-     * @return Variable[] an array of Variable
-     */
-    public function getVariables()
-    {
-        return $this->variables;
     }
 
     /**
@@ -238,6 +256,19 @@ class Crontab
     }
 
     /**
+     * Remove MAILTO in the current crontab
+     *
+     * @return Crontab
+     */
+    public function removeMailTo()
+    {
+        unset($this->mailTo);
+
+        return $this;
+    }
+
+
+    /**
      * Remove a specified job in the current crontab
      *
      * @param Job $job
@@ -247,66 +278,6 @@ class Crontab
     public function removeJob(Job $job)
     {
         unset($this->jobs[$job->getHash()]);
-
-        return $this;
-    }
-
-    /**
-     * @param Variable $variable
-     * @return Crontab
-     */
-    public function addVariable(Variable $variable)
-    {
-        $this->variables[$variable->getHash()] = $variable;
-
-        return $this;
-    }
-
-    /**
-     * @param Variable[] $variables
-     * @return Crontab
-     */
-    public function setVariables(array $variables)
-    {
-        foreach ($variables as $variable) {
-            $this->addVariable($variable);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param Variable $variable
-     * @return Crontab
-     */
-    public function removeVariable(Variable $variable)
-    {
-        unset($this->variables[$variable->getHash()]);
-
-        return $this;
-    }
-
-    /**
-     * @return Crontab
-     */
-    public function removeAllVariables()
-    {
-        $this->variables = array();
-
-        return $this;
-    }
-
-    /**
-     * @param Job|Variable $item
-     * @return Crontab
-     */
-    public function addItem($item)
-    {
-        if ($item instanceof Job) {
-            $this->addJob($item);
-        } else if ($item instanceof Variable) {
-            $this->addVariable($item);
-        }
 
         return $this;
     }

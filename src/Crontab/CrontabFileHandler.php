@@ -45,8 +45,8 @@ class CrontabFileHandler
         $process = new Process($this->crontabCommand($crontab).' -l');
         $process->run();
 
-        foreach ($this->parseString($process->getOutput()) as $item) {
-            $crontab->addItem($item);
+        foreach ($this->parseString($process->getOutput()) as $job) {
+            $crontab->addJob($job);
         }
 
         $this->error = $process->getErrorOutput();
@@ -70,8 +70,8 @@ class CrontabFileHandler
         }
 
         $file = file_get_contents($filename);
-        foreach ($this->parseString($file) as $element) {
-            $crontab->addItem($element);
+        foreach ($this->parseString($file) as $job) {
+            $crontab->addJob($job);
         }
 
         return $this;
@@ -82,11 +82,11 @@ class CrontabFileHandler
      *
      * @param string $input
      *
-     * @return array of Variable and Job instances
+     * @return Job[]
      */
     protected function parseString($input)
     {
-        $elements = array();
+        $jobs = array();
 
         $lines = array_filter(explode(PHP_EOL, $input), function($line) {
             return '' != trim($line);
@@ -95,16 +95,13 @@ class CrontabFileHandler
         foreach ($lines as $line) {
             $trimmed = trim($line);
             // if line is not a comment, convert it to a cron
-            if (0 !== \strpos($trimmed, '#')) {
-                if (preg_match('/^[^\s]+\s?=/', $line)) {
-                    $elements[] = Variable::parse($line);
-                } else {
-                    $elements[] = Job::parse($line);
-                }
+            // if line is not MAILTO string, convert it to a cron
+            if (0 !== \strpos($trimmed, '#') && 0 !== \strpos($trimmed, "MAILTO")) {
+                $jobs[] = Job::parse($line);
             }
         }
 
-        return $elements;
+        return $jobs;
     }
 
     /**
